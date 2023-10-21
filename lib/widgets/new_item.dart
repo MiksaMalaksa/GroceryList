@@ -18,11 +18,15 @@ class _NewItemState extends State<NewItem> {
   final _formKey = GlobalKey<FormState>();
   String name = "";
   int quantity = 1;
+  bool _isSending = false;
   var selectedCategory = categories[Categories.vegetables]!;
 
   void _onSubmitted() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
+      setState(() {
+        _isSending = true;
+      });
       final url = Uri.https(
           "firststeps-9d8d1-default-rtdb.firebaseio.com", "shoping-list.json");
       final response = await http.post(
@@ -39,8 +43,13 @@ class _NewItemState extends State<NewItem> {
         return;
       }
 
-      print(response.statusCode);
-      Navigator.of(context).pop();
+      final Map<String, dynamic> decodedBody = json.decode(response.body);
+
+      Navigator.of(context).pop(GroceryItem(
+          id: decodedBody['name'],
+          name: name,
+          quantity: quantity,
+          category: selectedCategory));
     }
   }
 
@@ -145,12 +154,22 @@ class _NewItemState extends State<NewItem> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TextButton(
-                        onPressed: () {
-                          _formKey.currentState!.reset();
-                        },
+                        //можно отключить кнопку просто передав null
+                        onPressed: _isSending
+                            ? null
+                            : () {
+                                _formKey.currentState!.reset();
+                              },
                         child: const Text("Reset")),
                     ElevatedButton(
-                        onPressed: _onSubmitted, child: const Text("Submit"))
+                        onPressed: _isSending ? null : _onSubmitted,
+                        child: _isSending
+                            ? const SizedBox(
+                                height: 16,
+                                width: 16,
+                                child: CircularProgressIndicator(),
+                              )
+                            : const Text("Submit"))
                   ],
                 )
               ],
